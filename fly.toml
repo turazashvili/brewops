@@ -1,0 +1,32 @@
+# BrewOps — Fly.io deployment configuration
+# The world's first cloud-deployed HTCPCP/1.0 server.
+# "Anyone who gets in between me and my morning coffee
+#  should be insecure." — RFC 2324, Section 7
+
+app = "brewops"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Brewfile"
+
+[env]
+  PORT = "8418"
+
+[http_service]
+  internal_port = 8418
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+[[http_service.checks]]
+  grace_period = "5s"
+  interval = "30s"
+  method = "GET"
+  path = "/health"
+  timeout = "5s"

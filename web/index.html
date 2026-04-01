@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrewOps Command Center v1.0.0</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+</head>
+<body>
+    <!-- ─── Platform Header ─── -->
+    <header>
+        <div class="header-left">
+            <h1>☕ BrewOps</h1>
+            <span class="version">v1.0.0</span>
+        </div>
+        <div class="header-right">
+            <span class="badge badge-prod">PRODUCTION</span>
+            <span class="badge badge-protocol">HTCPCP/1.0</span>
+            <span class="badge badge-rfc">RFC 2324</span>
+        </div>
+    </header>
+
+    <!-- ─── Hero Banner ─── -->
+    <div class="hero-banner">
+        <span class="hero-decor hero-decor-left">☕</span>
+        <span class="hero-decor hero-decor-right">🫖</span>
+        <h2>BrewOps Command Center</h2>
+        <div class="hero-sub">Enterprise-Grade Beverage Infrastructure Observability</div>
+        <div class="hero-ascii">       ( (
+        ) )
+      ........
+      |      |]     "Anyone who gets in between me and
+      \      /       my morning coffee should be insecure."
+       '----'                    — RFC 2324, Section 7</div>
+        <div style="margin-top: 16px;">
+            <a href="#try-it" class="hero-btn">TRY IT YOURSELF</a>
+        </div>
+    </div>
+
+    <!-- ─── Page Layout ─── -->
+    <div class="page-wrapper">
+
+        <!-- ═══ Main Content ═══ -->
+        <div class="main-content">
+
+            <!-- Global Stats -->
+            <section class="panel">
+                <h2>Global Operations</h2>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-value" id="stat-brews">0</div>
+                        <div class="stat-label">Total Brews</div>
+                    </div>
+                    <div class="stat stat-danger">
+                        <div class="stat-value" id="stat-418s">0</div>
+                        <div class="stat-label">418s Served</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="stat-rate"><span id="stat-rate-val">0</span>%</div>
+                        <div class="stat-label">418 Rate</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="stat-brewers">0</div>
+                        <div class="stat-label">Unique Brewers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="stat-caffeine">0</div>
+                        <div class="stat-label">Caffeine (mg)</div>
+                    </div>
+                    <div class="stat stat-danger">
+                        <div class="stat-value" id="stat-docs">0</div>
+                        <div class="stat-label">DoCS Attacks</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Fleet Status -->
+            <section class="panel">
+                <h2>Fleet Status</h2>
+                <div class="pots-grid" id="pots-grid">
+                    <!-- Filled by JS -->
+                </div>
+            </section>
+
+            <!-- Live Incident Timeline -->
+            <section class="panel">
+                <h2>
+                    Incident Timeline
+                    <span class="live-dot"></span>
+                    <span class="live-label">LIVE</span>
+                </h2>
+                <div class="events-log" id="events-log">
+                    <div class="event-empty">Waiting for first brew request...</div>
+                </div>
+            </section>
+
+            <!-- Try It -->
+            <section class="panel" id="try-it">
+                <h2>Try It Yourself</h2>
+                <div class="try-commands">
+                    <div class="try-cmd">
+                        <span class="try-label">Brew coffee:</span>
+                        <code>curl -X BREW <span class="cmd-host"></span>/pot -H 'Content-Type: message/coffeepot' -d 'start'</code>
+                    </div>
+                    <div class="try-cmd">
+                        <span class="try-label">With additions:</span>
+                        <code>curl -X BREW <span class="cmd-host"></span>/pot -H 'Content-Type: message/coffeepot' -H 'Accept-Additions: Cream, Whisky' -d 'start'</code>
+                    </div>
+                    <div class="try-cmd">
+                        <span class="try-label">Trigger 418:</span>
+                        <code>curl -X BREW <span class="cmd-host"></span>/pot-2 -H 'Content-Type: message/coffeepot' -d 'start'</code>
+                    </div>
+                    <div class="try-cmd">
+                        <span class="try-label">Brew tea:</span>
+                        <code>curl -X BREW <span class="cmd-host"></span>/tea/earl-grey -H 'Content-Type: message/teapot' -d 'start'</code>
+                    </div>
+                    <div class="try-cmd">
+                        <span class="try-label">DoCS attack:</span>
+                        <code>for i in $(seq 1 15); do curl -s -X BREW <span class="cmd-host"></span>/pot -d 'start' > /dev/null; done</code>
+                    </div>
+                    <div class="try-cmd">
+                        <span class="try-label">Fleet status:</span>
+                        <code>curl <span class="cmd-host"></span>/status</code>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ═══ Sidebar ═══ -->
+        <div class="sidebar">
+
+            <!-- SLA Widget -->
+            <div class="widget">
+                <h3>Service Level Agreement</h3>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Brew Uptime</span>
+                    <span class="widget-stat-value sla-good" id="sla-uptime">99.97%</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Spills / Quarter</span>
+                    <span class="widget-stat-value" id="sla-spills">3</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">DoCS Attacks</span>
+                    <span class="widget-stat-value sla-danger" id="sla-docs">0</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Data Retention</span>
+                    <span class="widget-stat-value sla-warn">Until Deploy</span>
+                </div>
+            </div>
+
+            <!-- Popular Addition Widget -->
+            <div class="widget">
+                <h3>Top Addition</h3>
+                <div style="text-align:center; padding: 8px 0;">
+                    <div style="font-size: 22px; font-weight: 900;" id="stat-addition">None yet</div>
+                    <div style="font-size: 11px; color: var(--muted);">MOST REQUESTED</div>
+                </div>
+            </div>
+
+            <!-- RFC Reference Widget -->
+            <div class="widget">
+                <h3>RFC Compliance</h3>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Protocol</span>
+                    <span class="widget-stat-value">HTCPCP/1.0</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Base RFC</span>
+                    <span class="widget-stat-value"><a href="https://datatracker.ietf.org/doc/html/rfc2324" target="_blank" style="color:var(--link)">2324</a></span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">TEA Extension</span>
+                    <span class="widget-stat-value"><a href="https://datatracker.ietf.org/doc/html/rfc7168" target="_blank" style="color:var(--link)">7168</a></span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Author</span>
+                    <span class="widget-stat-value">L. Masinter</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Safe</span>
+                    <span class="widget-stat-value">if-user-awake</span>
+                </div>
+            </div>
+
+            <!-- Fleet Info Widget -->
+            <div class="widget">
+                <h3>Fleet Info</h3>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Total Pots</span>
+                    <span class="widget-stat-value" id="sidebar-pot-count">4</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Teapots</span>
+                    <span class="widget-stat-value" id="sidebar-teapot-count">1</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Surprise Rate</span>
+                    <span class="widget-stat-value">1 in 5</span>
+                </div>
+                <div class="widget-stat">
+                    <span class="widget-stat-label">Port</span>
+                    <span class="widget-stat-value">8418</span>
+                </div>
+            </div>
+
+            <!-- Security Widget -->
+            <div class="widget">
+                <h3>Security Considerations</h3>
+                <p style="font-size: 12px; color: var(--muted); font-style: italic; line-height: 1.5;">
+                    "Anyone who gets in between me and my morning coffee should be insecure."
+                    <br><br>
+                    "The improper use of filtration devices might admit trojan grounds."
+                    <br><br>
+                    &mdash; RFC 2324 &sect;7
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ─── Footer ─── -->
+    <footer>
+        <p>BrewOps v1.0.0 &mdash; HTCPCP/1.0 (RFC 2324) + HTCPCP-TEA (RFC 7168) &mdash; Built with questionable priorities</p>
+        <p>"Putting coffee grounds into Internet plumbing may result in clogged plumbing." &mdash; RFC 2324</p>
+    </footer>
+
+    <script src="/dashboard.js"></script>
+</body>
+</html>
