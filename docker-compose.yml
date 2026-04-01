@@ -1,0 +1,25 @@
+# BrewOps — Brew Compose
+#
+# "In practice, most automated coffee pots cannot currently
+#  provide additions." — RFC 2324, Section 2.3.1
+#
+# But they CAN provide containers.
+#
+# Deploy: docker compose up -d
+# Taste:  curl -X BREW http://localhost:8418/pot -d 'start'
+# Regret: curl -X BREW http://localhost:8418/pot-2 -d 'start'
+
+services:
+  barista:
+    build:
+      context: .
+      dockerfile: Brewfile
+    container_name: brewops-barista
+    ports:
+      - "8418:8418"
+    environment:
+      - PORT=8418
+    restart: unless-stopped
+    # Safe: if-user-awake
+    # Serving temperature: hot.
+    # Serving size: one container. Literally.
