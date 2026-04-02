@@ -407,7 +407,7 @@ header h1 {
 
 .event-row {
   display: grid;
-  grid-template-columns: 62px 72px 105px auto;
+  grid-template-columns: 62px 72px 100px 105px auto;
   gap: 8px;
   padding: 5px 8px;
   font-size: 12px;
@@ -463,6 +463,12 @@ header h1 {
 .event-severity.WARNING { color: var(--warning); }
 .event-severity.SUCCESS { color: var(--success); }
 .event-severity.INFO { color: var(--link); }
+
+.event-ip {
+  color: var(--muted);
+  font-size: 11px;
+  opacity: 0.7;
+}
 
 .event-method { color: var(--muted); }
 
@@ -626,6 +632,7 @@ footer a {
     grid-template-columns: 55px 65px auto;
   }
 
+  .event-ip,
   .event-method {
     display: none;
   }

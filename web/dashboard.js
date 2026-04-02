@@ -84,6 +84,7 @@
         row.innerHTML =
             '<span class="event-time">' + escapeHtml(event.timestamp) + '</span>' +
             '<span class="event-severity ' + escapeHtml(event.severity) + '">' + escapeHtml(event.severity) + '</span>' +
+            '<span class="event-ip">' + escapeHtml(event.ip) + '</span>' +
             '<span class="event-method">' + escapeHtml(event.method) + ' ' + escapeHtml(event.path) + '</span>' +
             '<span class="event-message">' + escapeHtml(event.message) + '</span>';
 
