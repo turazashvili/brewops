@@ -18,6 +18,24 @@ func pick(pool []string) string {
 	return pool[rand.Intn(len(pool))]
 }
 
+// realIP extracts the real client IP from proxy headers.
+// Nginx sets X-Real-IP and X-Forwarded-For, but r.RemoteAddr
+// is always 127.0.0.1 behind a reverse proxy. Without this,
+// every visitor looks like localhost and the unique brewers
+// counter stays at 1. Ask me how I know.
+func realIP(r *http.Request) string {
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		if i := strings.Index(fwd, ","); i > 0 {
+			return strings.TrimSpace(fwd[:i])
+		}
+		return fwd
+	}
+	return r.RemoteAddr
+}
+
 // ── Rotating flavor text pools for plain-text responses ──
 
 var flavorBrew = []string{
@@ -186,10 +204,10 @@ func (s *Server) handleNewPot(w http.ResponseWriter, r *http.Request) {
 	// RFC 2324 §7: "Unmoderated access to unprotected coffee pots from
 	// Internet users might lead to several kinds of denial of coffee
 	// service attacks."
-	isDoCS, brewCount, docsTotal := s.Metrics.CheckDoCS(r.RemoteAddr)
+	isDoCS, brewCount, docsTotal := s.Metrics.CheckDoCS(realIP(r))
 	if isDoCS {
 		// Log the attack as a CRITICAL incident
-		s.Metrics.Record("BREW", "/pot [DoCS]", 429, r.RemoteAddr, nil)
+		s.Metrics.Record("BREW", "/pot [DoCS]", 429, realIP(r), nil)
 	}
 
 	pot := s.Fleet.CreatePot()
@@ -218,7 +236,7 @@ func (s *Server) handleNewPot(w http.ResponseWriter, r *http.Request) {
 
 	// If the new pot is a teapot and they want coffee: surprise 418!
 	if pot.Type == PotTypeTeapot && (beverage == BeverageCoffee || beverage == BeverageEspresso) {
-		s.Metrics.Record(r.Method, r.URL.Path, 418, r.RemoteAddr, nil)
+		s.Metrics.Record(r.Method, r.URL.Path, 418, realIP(r), nil)
 		s.respond418(w, r, pot)
 		return
 	}
@@ -227,12 +245,12 @@ func (s *Server) handleNewPot(w http.ResponseWriter, r *http.Request) {
 	if command == "start" {
 		status, errKind := pot.StartBrew(beverage, teaVariety, validAdds)
 		if errKind != "" {
-			s.Metrics.Record(r.Method, r.URL.Path, 500, r.RemoteAddr, nil)
+			s.Metrics.Record(r.Method, r.URL.Path, 500, realIP(r), nil)
 			s.respondErr(w, r, 500, "Failed to start brew on new pot. The coffee gods are displeased.", nil)
 			return
 		}
 
-		s.Metrics.Record(r.Method, r.URL.Path, 200, r.RemoteAddr, addStrings)
+		s.Metrics.Record(r.Method, r.URL.Path, 200, realIP(r), addStrings)
 		host := inferHost(r)
 		jsonData := map[string]interface{}{
 			"status":  "brewing",
@@ -338,7 +356,7 @@ func (s *Server) handleBrew(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	// Handle stop
 	if command == "stop" {
 		st := pot.StopBrew()
-		s.Metrics.Record(r.Method, r.URL.Path, 200, r.RemoteAddr, nil)
+		s.Metrics.Record(r.Method, r.URL.Path, 200, realIP(r), nil)
 		s.respond(w, r, 200, func() string {
 			return fmt.Sprintf(`
   Brew Stopped
@@ -365,7 +383,7 @@ func (s *Server) handleBrew(w http.ResponseWriter, r *http.Request, pot *Pot) {
 			addStrings = append(addStrings, string(a))
 		} else {
 			// 406 Not Acceptable
-			s.Metrics.Record(r.Method, r.URL.Path, 406, r.RemoteAddr, nil)
+			s.Metrics.Record(r.Method, r.URL.Path, 406, realIP(r), nil)
 			s.respondNotAcceptable(w, r, a)
 			return
 		}
@@ -378,14 +396,14 @@ func (s *Server) handleBrew(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	// If it's a teapot and you want coffee: 418.
 	// This is THE moment. The whole reason this project exists.
 	if pot.Type == PotTypeTeapot && (beverage == BeverageCoffee || beverage == BeverageEspresso) {
-		s.Metrics.Record(r.Method, r.URL.Path, 418, r.RemoteAddr, nil)
+		s.Metrics.Record(r.Method, r.URL.Path, 418, realIP(r), nil)
 		s.respond418(w, r, pot)
 		return
 	}
 
 	// If it's a coffee pot and you want tea
 	if pot.Type == PotTypeCoffee && beverage == BeverageTea {
-		s.Metrics.Record(r.Method, r.URL.Path, 406, r.RemoteAddr, nil)
+		s.Metrics.Record(r.Method, r.URL.Path, 406, realIP(r), nil)
 		s.jsonError(w, r, 406,
 			"This is a coffee pot. It is not tea-capable. Per RFC 7168, tea requires a 'message/teapot' capable device.")
 		return
@@ -394,7 +412,7 @@ func (s *Server) handleBrew(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	// If it's a teapot brewing tea, check for tea variety
 	if pot.Type == PotTypeTeapot && beverage == BeverageTea && teaVariety == TeaNone {
 		// Return 300 Multiple Options with Alternates header (RFC 7168 Section 2.1.1)
-		s.Metrics.Record(r.Method, r.URL.Path, 300, r.RemoteAddr, nil)
+		s.Metrics.Record(r.Method, r.URL.Path, 300, realIP(r), nil)
 		s.respond300(w, r, pot)
 		return
 	}
@@ -404,19 +422,19 @@ func (s *Server) handleBrew(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	if errKind != "" {
 		switch errKind {
 		case "teapot":
-			s.Metrics.Record(r.Method, r.URL.Path, 418, r.RemoteAddr, nil)
+			s.Metrics.Record(r.Method, r.URL.Path, 418, realIP(r), nil)
 			s.respond418(w, r, pot)
 		case "busy":
-			s.Metrics.Record(r.Method, r.URL.Path, 503, r.RemoteAddr, nil)
+			s.Metrics.Record(r.Method, r.URL.Path, 503, realIP(r), nil)
 			s.respondErr(w, r, 503, fmt.Sprintf("pot-%d is currently busy (%s). Please wait or try another pot.", pot.ID, pot.State), nil)
 		default:
-			s.Metrics.Record(r.Method, r.URL.Path, 500, r.RemoteAddr, nil)
+			s.Metrics.Record(r.Method, r.URL.Path, 500, realIP(r), nil)
 			s.respondErr(w, r, 500, "Unexpected brew error. The coffee gods are displeased.", nil)
 		}
 		return
 	}
 
-	s.Metrics.Record(r.Method, r.URL.Path, 200, r.RemoteAddr, addStrings)
+	s.Metrics.Record(r.Method, r.URL.Path, 200, realIP(r), addStrings)
 	jsonData := map[string]interface{}{
 		"status":  "brewing",
 		"pot":     status,
@@ -459,7 +477,7 @@ func (s *Server) handleBrew(w http.ResponseWriter, r *http.Request, pot *Pot) {
 // coffee pot are physical, and not information resources."
 func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	st := pot.Status()
-	s.Metrics.Record("GET", r.URL.Path, 200, r.RemoteAddr, nil)
+	s.Metrics.Record("GET", r.URL.Path, 200, realIP(r), nil)
 
 	icon := "coffee-pot"
 	if st.Type == PotTypeTeapot {
@@ -510,7 +528,7 @@ func (s *Server) handleGet(w http.ResponseWriter, r *http.Request, pot *Pot) {
 // Enough? Say WHEN."
 func (s *Server) handleWhen(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	st, milkAmount := pot.SayWhen()
-	s.Metrics.Record("WHEN", r.URL.Path, 200, r.RemoteAddr, nil)
+	s.Metrics.Record("WHEN", r.URL.Path, 200, realIP(r), nil)
 
 	jsonData := map[string]interface{}{
 		"status":            st,
@@ -539,7 +557,7 @@ func (s *Server) handleWhen(w http.ResponseWriter, r *http.Request, pot *Pot) {
 // the brewed resource is discovered using the PROPFIND method."
 func (s *Server) handlePropfind(w http.ResponseWriter, r *http.Request, pot *Pot) {
 	st := pot.Status()
-	s.Metrics.Record("PROPFIND", r.URL.Path, 200, r.RemoteAddr, nil)
+	s.Metrics.Record("PROPFIND", r.URL.Path, 200, realIP(r), nil)
 
 	props := map[string]interface{}{
 		"pot":                 st,
@@ -621,12 +639,12 @@ func (s *Server) handleTeaVariety(w http.ResponseWriter, r *http.Request) {
 
 	status, errKind := pot.StartBrew(BeverageTea, variety, validAdds)
 	if errKind == "busy" {
-		s.Metrics.Record(r.Method, r.URL.Path, 503, r.RemoteAddr, nil)
+		s.Metrics.Record(r.Method, r.URL.Path, 503, realIP(r), nil)
 		s.jsonError(w, r, 503, "Teapot is busy. Patience is a virtue, especially with tea.")
 		return
 	}
 
-	s.Metrics.Record(r.Method, r.URL.Path, 200, r.RemoteAddr, addStrings)
+	s.Metrics.Record(r.Method, r.URL.Path, 200, realIP(r), addStrings)
 	jsonData := map[string]interface{}{
 		"status":  "steeping",
 		"pot":     status,
@@ -658,7 +676,7 @@ func (s *Server) handleTeaVariety(w http.ResponseWriter, r *http.Request) {
 
 // handleCoffeeRoot handles the coffee: URI scheme root.
 func (s *Server) handleCoffeeRoot(w http.ResponseWriter, r *http.Request) {
-	s.Metrics.Record(r.Method, r.URL.Path, 200, r.RemoteAddr, nil)
+	s.Metrics.Record(r.Method, r.URL.Path, 200, realIP(r), nil)
 	jsonData := map[string]interface{}{
 		"protocol":   "HTCPCP/1.0",
 		"uri_scheme": "coffee:",
@@ -705,7 +723,7 @@ func (s *Server) handleCoffeeRoot(w http.ResponseWriter, r *http.Request) {
 
 // handleStatus returns status for all pots.
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
-	s.Metrics.Record("GET", "/status", 200, r.RemoteAddr, nil)
+	s.Metrics.Record("GET", "/status", 200, realIP(r), nil)
 	stats := s.Metrics.Stats()
 	pots := s.Fleet.AllStatus()
 	jsonData := map[string]interface{}{
